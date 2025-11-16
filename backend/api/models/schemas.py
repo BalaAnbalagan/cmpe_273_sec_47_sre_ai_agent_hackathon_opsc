@@ -30,3 +30,25 @@ class ImageSearchRequest(BaseModel):
 class TopIPsQuery(BaseModel):
     status_code: str = "400"
     top_n: int = 10
+
+class ImageDescriptionRequest(BaseModel):
+    """Request to generate embedding for an image description"""
+    image_id: str
+    description: str
+    metadata: Dict[str, Any] | None = None
+
+class NaturalLanguageSearchRequest(BaseModel):
+    """Request for natural language image search"""
+    query: str
+    top_k: int = 5
+
+class ChatWithImagesRequest(BaseModel):
+    """Request for RAG-based chat about images"""
+    query: str
+    image_ids: List[str] | None = None  # If None, use top search results
+    max_results: int = 10
+
+class SafetyAnalysisRequest(BaseModel):
+    """Request for safety compliance analysis"""
+    site_id: str | None = None  # Analyze specific site or all sites
+    max_images: int = 20
