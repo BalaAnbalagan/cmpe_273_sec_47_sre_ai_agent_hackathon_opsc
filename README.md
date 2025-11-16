@@ -144,17 +144,6 @@ cp .env.example .env
 
 See [.env.example](.env.example) for all required environment variables.
 
-### 3. Local Development (Optional)
-
-Run infrastructure locally with Docker:
-
-```bash
-cd infra
-docker-compose up -d
-```
-
-This starts MQTT, RabbitMQ, Redis, and MongoDB on localhost for local testing.
-
 ## Project Structure
 
 ```
