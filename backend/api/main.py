@@ -9,6 +9,7 @@ Handles:
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from loguru import logger
 import sys
@@ -42,6 +43,19 @@ app = FastAPI(
     version=settings.DEPLOYMENT_VERSION,
     default_response_class=ORJSONResponse,
     lifespan=lifespan
+)
+
+# Add CORS middleware for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://*.azurewebsites.net",
+        "https://*.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(sre_router)
