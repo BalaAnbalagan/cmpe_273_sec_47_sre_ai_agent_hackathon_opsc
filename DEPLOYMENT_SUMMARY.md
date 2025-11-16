@@ -3,6 +3,7 @@
 
 **Deployment Date:** November 15-16, 2025
 **Region:** West US 2 (California - closest to SF Bay Area)
+**Subscription:** SJSU Project (3f6c1a1f-b1fa-4745-ab53-a4d9d1d348d7)
 **Resource Group:** rg-cmpe273-sre-hackathon
 **Status:** ✅ **ALL INFRASTRUCTURE DEPLOYED SUCCESSFULLY**
 
@@ -44,8 +45,8 @@
 **MQTT Broker (Azure Container Instance):**
 - Name: mqtt-broker
 - Image: eclipse-mosquitto:2 (from Azure Container Registry)
-- Host: opsc-mqtt-ha.westus2.azurecontainer.io
-- IP: 4.154.194.61
+- Host: opsc-mqtt-sjsu.westus2.azurecontainer.io
+- IP: 20.72.232.216
 - Ports:
   - 1883 (MQTT)
   - 9001 (WebSocket)
@@ -55,8 +56,8 @@
 **RabbitMQ Broker (Azure Container Instance):**
 - Name: rabbitmq-broker
 - Image: rabbitmq:3-management (from Azure Container Registry)
-- Host: opsc-rabbitmq-ha.westus2.azurecontainer.io
-- IP: 52.143.78.169
+- Host: opsc-rabbitmq-sjsu.westus2.azurecontainer.io
+- IP: 4.242.119.173
 - Ports:
   - 5672 (AMQP)
   - 15672 (Management UI)
@@ -64,7 +65,7 @@
 - Credentials:
   - Username: admin
   - Password: hackathon2024
-- Management UI: http://52.143.78.169:15672
+- Management UI: http://4.242.119.173:15672
 - Queue: webapp/active_users
 
 **Azure Container Registry:**
@@ -148,18 +149,18 @@ Backend AZ2: https://sre-backend-az2.azurewebsites.net
 
 ### MQTT Broker
 ```
-Host (DNS):  opsc-mqtt-ha.westus2.azurecontainer.io
-IP Address:  4.154.194.61
+Host (DNS):  opsc-mqtt-sjsu.westus2.azurecontainer.io
+IP Address:  20.72.232.216
 MQTT Port:   1883
 WebSocket:   9001
 ```
 
 ### RabbitMQ Broker
 ```
-Host (DNS):      opsc-rabbitmq-ha.westus2.azurecontainer.io
-IP Address:      52.143.78.169
+Host (DNS):      opsc-rabbitmq-sjsu.westus2.azurecontainer.io
+IP Address:      4.242.119.173
 AMQP Port:       5672
-Management UI:   http://52.143.78.169:15672
+Management UI:   http://4.242.119.173:15672
 Username:        admin
 Password:        hackathon2024
 ```
@@ -393,18 +394,18 @@ az webapp log tail --name sre-backend-az1 -g rg-cmpe273-sre-hackathon
 brew install mosquitto
 
 # Test MQTT connection
-mosquitto_sub -h 4.154.194.61 -p 1883 -t "og/field/#" -v
+mosquitto_sub -h 20.72.232.216 -p 1883 -t "og/field/#" -v
 ```
 
 ### Test RabbitMQ Connection
-- Management UI: http://52.143.78.169:15672
+- Management UI: http://4.242.119.173:15672
 - Username: admin
 - Password: hackathon2024
 
 ### Important Information
 - **Resource Group:** rg-cmpe273-sre-hackathon
 - **Region:** West US 2
-- **Subscription:** The Krishnan Group
+- **Subscription:** SJSU Project (3f6c1a1f-b1fa-4745-ab53-a4d9d1d348d7)
 - **Key Vault:** kv-opsc-sre-74668
 
 ---
