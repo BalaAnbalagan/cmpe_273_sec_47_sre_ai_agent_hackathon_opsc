@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from loguru import logger
+from fastapi.middleware.cors import CORSMiddleware
 import sys
 
 from api.core.config import settings
@@ -18,6 +19,11 @@ from api.services.redis_client import close_redis
 from api.services.mongo_client import close_mongo
 from api.routers.sre import router as sre_router
 
+origins = [
+    "http://localhost:3000",   # Next.js dev
+    "http://127.0.0.1:3000",
+    # add prod frontend URL later (e.g. https://your-app.com)
+]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,6 +48,14 @@ app = FastAPI(
     version=settings.DEPLOYMENT_VERSION,
     default_response_class=ORJSONResponse,
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(sre_router)
