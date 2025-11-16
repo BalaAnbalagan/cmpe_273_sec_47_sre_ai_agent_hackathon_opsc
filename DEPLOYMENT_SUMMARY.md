@@ -114,6 +114,20 @@
 
 ### 5. Security
 
+**User Managed Identity:**
+- Name: umi-sre-opsc
+- Client ID: Stored in Key Vault (secret: UMIClientID)
+- Status: ✅ Configured
+- Access Granted:
+  - Key Vault: Get, List secrets
+  - Storage Account: Blob Data Contributor
+  - Cosmos DB: DocumentDB Account Contributor
+  - Redis Cache: Redis Cache Contributor
+- Assigned to:
+  - sre-frontend App Service ✅
+  - sre-backend-az1 App Service ✅
+  - sre-backend-az2 App Service ✅
+
 **Azure Key Vault:**
 - Name: kv-opsc-sre-74668
 - URL: https://kv-opsc-sre-74668.vault.azure.net/
@@ -134,6 +148,9 @@
   - RabbitMQManagementPort ✅
   - RabbitMQUsername ✅
   - RabbitMQPassword ✅
+  - UMIClientID ✅
+- Access Policies:
+  - UMI (umi-sre-opsc): Get, List secrets
 - Cost: ~$1/week
 
 ---
@@ -189,6 +206,58 @@ Containers:    site-images, system-logs
 
 ## 📋 Next Steps for Team
 
+### Using User Managed Identity (UMI) for Password-less Authentication
+
+All App Services now have a User Managed Identity (UMI) assigned that can access Azure resources without passwords:
+
+**UMI Details:**
+- Name: umi-sre-opsc
+- Client ID: Retrieve from Key Vault (secret: UMIClientID) or from .env file
+- Can access: Key Vault, Storage Account, Cosmos DB, Redis Cache
+
+**Get UMI Client ID:**
+```bash
+# From Key Vault
+az keyvault secret show --vault-name kv-opsc-sre-74668 --name UMIClientID --query value -o tsv
+
+# Or from Azure Portal
+az identity show --name umi-sre-opsc -g rg-cmpe273-sre-hackathon --query clientId -o tsv
+```
+
+**Using UMI in Python (Backend):**
+```python
+from azure.identity import ManagedIdentityCredential
+from azure.keyvault.secrets import SecretClient
+import os
+
+# Get UMI Client ID from environment variable
+umi_client_id = os.getenv("AZURE_CLIENT_ID")
+
+# Use UMI to access Key Vault
+credential = ManagedIdentityCredential(client_id=umi_client_id)
+client = SecretClient(vault_url="https://kv-opsc-sre-74668.vault.azure.net/", credential=credential)
+
+# Get secrets without passwords
+redis_key = client.get_secret("RedisKey").value
+cosmos_uri = client.get_secret("CosmosMongoDBConnectionString").value
+```
+
+**Using UMI in Node.js (Frontend):**
+```javascript
+const { ManagedIdentityCredential } = require("@azure/identity");
+const { SecretClient } = require("@azure/keyvault-secrets");
+
+// Get UMI Client ID from environment variable
+const umiClientId = process.env.AZURE_CLIENT_ID;
+
+// Use UMI to access Key Vault
+const credential = new ManagedIdentityCredential(umiClientId);
+const client = new SecretClient("https://kv-opsc-sre-74668.vault.azure.net/", credential);
+
+// Get secrets without passwords
+const redisKey = await client.getSecret("RedisKey");
+```
+
 ### For Varad (Backend):
 
 **1. Clone Repository and Get Credentials:**
@@ -207,14 +276,18 @@ cp .env backend/.env
 - Get your API key from https://dashboard.cohere.com/
 - Update `COHERE_API_KEY` in backend/.env
 
-**4. Build FastAPI Backend:**
+**4. (Optional) Use UMI for Production:**
+- When deployed to Azure App Service, use ManagedIdentityCredential
+- Avoids hardcoding credentials in .env for production
+
+**5. Build FastAPI Backend:**
 ```bash
 cd backend/api
 pip install -r requirements.txt
 python main.py  # Test locally
 ```
 
-**5. Deploy to Azure App Services:**
+**6. Deploy to Azure App Services:**
 ```bash
 # Deploy to Backend AZ1
 az webapp up --name sre-backend-az1 --resource-group rg-cmpe273-sre-hackathon
