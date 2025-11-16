@@ -258,7 +258,7 @@ const client = new SecretClient("https://kv-opsc-sre-74668.vault.azure.net/", cr
 const redisKey = await client.getSecret("RedisKey");
 ```
 
-### For Varad (Backend):
+### Backend Setup:
 
 **1. Clone Repository and Get Credentials:**
 ```bash
@@ -304,7 +304,7 @@ az webapp up --name sre-backend-az2 --resource-group rg-cmpe273-sre-hackathon
 - Implement FastAPI endpoints
 - Integrate with Redis and Cosmos DB
 
-### For Samip (Frontend):
+### Frontend Setup:
 
 **1. Clone Repository:**
 ```bash

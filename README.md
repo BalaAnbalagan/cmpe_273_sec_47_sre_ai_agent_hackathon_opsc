@@ -13,11 +13,90 @@ A Tier-0 Enterprise Reliability Engineering application demonstrating 99.99999% 
 
 ## Team Members
 
-- **Bala** - Azure Infrastructure & DevOps
-- **Varad** - Backend Development (FastAPI)
-- **Samip** - Frontend Development (Next.js + shadcn/ui)
+- Bala Anbalagan
+- Varad Poddar
+- Samip Niraula
 
 ## Architecture
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Users / Devices                          │
+└────────────────┬────────────────────────────┬────────────────────┘
+                 │                            │
+                 ▼                            ▼
+        ┌────────────────┐          ┌────────────────┐
+        │  Next.js        │          │  IoT Devices   │
+        │  Frontend       │          │  (100K)        │
+        │  Dashboard      │          └────────┬───────┘
+        └────────┬───────┘                   │
+                 │                            │
+                 │                            ▼
+                 │                   ┌────────────────┐
+                 │                   │  MQTT Broker   │
+                 │                   │  (ACI)         │
+                 │                   └────────┬───────┘
+                 │                            │
+                 ▼                            │
+        ┌────────────────┐                   │
+        │  FastAPI       │◄──────────────────┘
+        │  Backend       │
+        │  (AZ1 + AZ2)   │
+        └────────┬───────┘
+                 │
+    ┌────────────┼────────────┐
+    │            │            │
+    ▼            ▼            ▼
+┌────────┐  ┌────────┐  ┌─────────┐
+│ Redis  │  │ Cosmos │  │ Blob    │
+│ Cache  │  │   DB   │  │ Storage │
+└────────┘  └────────┘  └─────────┘
+```
+
+### Infrastructure Architecture
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    Azure West US 2 Region                       │
+├────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │              Compute Layer (App Services)                 │  │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐         │  │
+│  │  │ Frontend   │  │Backend AZ1 │  │Backend AZ2 │         │  │
+│  │  │ (Node.js)  │  │ (Python)   │  │ (Python)   │         │  │
+│  │  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘         │  │
+│  └────────┼───────────────┼───────────────┼────────────────┘  │
+│           │               │               │                    │
+│  ┌────────┼───────────────┼───────────────┼────────────────┐  │
+│  │        │     Messaging Layer (ACI)     │                │  │
+│  │  ┌─────▼─────┐                  ┌──────▼─────┐         │  │
+│  │  │   MQTT    │                  │  RabbitMQ  │         │  │
+│  │  │  Broker   │                  │   Broker   │         │  │
+│  │  └───────────┘                  └────────────┘         │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │              Data & Storage Layer                         │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌───────────┐             │  │
+│  │  │  Redis   │  │ Cosmos DB│  │   Blob    │             │  │
+│  │  │  Cache   │  │ (MongoDB)│  │  Storage  │             │  │
+│  │  │(Standard)│  │   API    │  │  (Images) │             │  │
+│  │  └──────────┘  └──────────┘  └───────────┘             │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │              Security & Identity                          │  │
+│  │  ┌────────────────┐        ┌────────────────┐           │  │
+│  │  │   Key Vault    │        │  User Managed  │           │  │
+│  │  │  (Credentials) │        │    Identity    │           │  │
+│  │  └────────────────┘        └────────────────┘           │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└────────────────────────────────────────────────────────────────┘
+```
 
 ### Technology Stack
 
@@ -47,34 +126,34 @@ A Tier-0 Enterprise Reliability Engineering application demonstrating 99.99999% 
 
 ## Quick Start
 
-### 1. Deploy Infrastructure (Bala)
+### 1. Clone Repository
 
 ```bash
-cd infra/scripts
-./deploy-infra.sh
+git clone <repo-url>
+cd cmpe_273_sec_47_sre_ai_agent_hackathon_opsc
 ```
-
-See [infra/README.md](infra/README.md) for detailed instructions.
 
 ### 2. Get Configuration
 
+Contact team for the `.env` file with all Azure credentials, or retrieve from Azure Key Vault:
+
 ```bash
-cd infra/scripts
-./get-config.sh
+# Get credentials from Key Vault
+az keyvault secret show --vault-name kv-opsc-sre-74668 --name RedisKey --query value -o tsv
+az keyvault secret show --vault-name kv-opsc-sre-74668 --name CosmosMongoDBConnectionString --query value -o tsv
+# ... etc
 ```
 
-This generates a `.env` file with all Azure connection details.
+### 3. Local Development (Optional)
 
-### 3. Local Development
-
-Run infrastructure locally:
+Run infrastructure locally with Docker:
 
 ```bash
 cd infra
 docker-compose up -d
 ```
 
-This starts MQTT, RabbitMQ, Redis, MongoDB, and PostgreSQL on localhost.
+This starts MQTT, RabbitMQ, Redis, and MongoDB on localhost for local testing.
 
 ## Project Structure
 
@@ -132,14 +211,11 @@ All resources deployed in **West US** with **Availability Zone** redundancy:
 
 ### Cleanup
 
-When done:
+When done, delete all Azure resources:
 
 ```bash
-cd infra/scripts
-./cleanup.sh
+az group delete --name rg-cmpe273-sre-hackathon --yes --no-wait
 ```
-
-This deletes all Azure resources.
 
 ## Documentation
 
@@ -221,14 +297,14 @@ This deletes all Azure resources.
 
 ## Development Workflow
 
-### Infrastructure Team (Bala)
+### Infrastructure Setup
 
 1. Deploy Azure infrastructure
 2. Configure networking and security
 3. Set up monitoring and alerts
-4. Provide `.env` configuration to team
+4. Share `.env` configuration with team
 
-### Backend Team (Varad)
+### Backend Development
 
 1. Build FastAPI application
 2. Implement device simulators
@@ -236,7 +312,7 @@ This deletes all Azure resources.
 4. Integrate with Redis and Cosmos DB
 5. Deploy to Azure App Services
 
-### Frontend Team (Samip)
+### Frontend Development
 
 1. Build Next.js dashboard
 2. Implement shadcn/ui components
@@ -246,33 +322,16 @@ This deletes all Azure resources.
 
 ## Environment Variables
 
-Required environment variables (auto-generated by `get-config.sh`):
+See [.env.example](.env.example) for all required environment variables. Key variables include:
 
-```bash
-# Application URLs
-FRONTEND_URL=https://sre-frontend.azurewebsites.net
-BACKEND_AZ1_URL=https://sre-backend-az1.azurewebsites.net
-BACKEND_AZ2_URL=https://sre-backend-az2.azurewebsites.net
+- `MQTT_HOST`, `RABBITMQ_HOST` - Messaging broker endpoints
+- `REDIS_HOST`, `REDIS_PASSWORD` - Redis cache connection
+- `COSMOS_MONGODB_URI` - Cosmos DB MongoDB connection string
+- `AZURE_STORAGE_CONNECTION_STRING` - Blob storage connection
+- `COHERE_API_KEY` - Cohere AI API key for embeddings
+- `AZURE_CLIENT_ID` - User Managed Identity for password-less auth
 
-# MQTT
-MQTT_HOST=<ip>
-MQTT_PORT=1883
-
-# RabbitMQ
-RABBITMQ_HOST=<ip>
-RABBITMQ_PORT=5672
-
-# Redis
-REDIS_HOST=redis-sre-ha.redis.cache.windows.net
-REDIS_PORT=6380
-REDIS_PASSWORD=<key>
-
-# Cosmos DB
-COSMOS_MONGODB_URI=mongodb://...
-
-# Cohere AI (add your key)
-COHERE_API_KEY=your-key-here
-```
+All sensitive credentials are stored in Azure Key Vault: `kv-opsc-sre-74668`
 
 ## License
 
