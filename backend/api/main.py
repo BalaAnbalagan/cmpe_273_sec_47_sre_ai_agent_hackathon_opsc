@@ -48,12 +48,8 @@ app = FastAPI(
 # Add CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://*.azurewebsites.net",
-        "https://*.vercel.app",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for demo - change in production
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
