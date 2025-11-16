@@ -135,14 +135,14 @@ cd cmpe_273_sec_47_sre_ai_agent_hackathon_opsc
 
 ### 2. Get Configuration
 
-Contact team for the `.env` file with all Azure credentials, or retrieve from Azure Key Vault:
+Copy `.env.example` to `.env` and fill in the required credentials:
 
 ```bash
-# Get credentials from Key Vault
-az keyvault secret show --vault-name kv-opsc-sre-74668 --name RedisKey --query value -o tsv
-az keyvault secret show --vault-name kv-opsc-sre-74668 --name CosmosMongoDBConnectionString --query value -o tsv
-# ... etc
+cp .env.example .env
+# Edit .env with your credentials
 ```
+
+See [.env.example](.env.example) for all required environment variables.
 
 ### 3. Local Development (Optional)
 
@@ -331,7 +331,7 @@ See [.env.example](.env.example) for all required environment variables. Key var
 - `COHERE_API_KEY` - Cohere AI API key for embeddings
 - `AZURE_CLIENT_ID` - User Managed Identity for password-less auth
 
-All sensitive credentials are stored in Azure Key Vault: `kv-opsc-sre-74668`
+All sensitive credentials are stored securely in Azure Key Vault.
 
 ## License
 
