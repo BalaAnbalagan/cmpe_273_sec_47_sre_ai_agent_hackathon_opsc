@@ -129,19 +129,19 @@ A Tier-0 Enterprise Reliability Engineering application demonstrating 99.99999% 
 
 ```
 cmpe_273_sec_47_sre_ai_agent_hackathon_opsc/
-├── infra/                     # Infrastructure (Bala)
+├── infra/                     # Infrastructure setup
 │   ├── scripts/               # Deployment scripts
 │   ├── docs/                  # Infrastructure documentation
 │   ├── docker-compose.yml     # Local development stack
 │   └── README.md
 │
-├── backend/                   # Backend API (Varad)
+├── backend/                   # Backend API
 │   ├── api/                   # FastAPI application
 │   ├── simulators/            # Device & user simulators
 │   ├── workers/               # MQTT/RabbitMQ consumers
 │   └── requirements.txt
 │
-├── frontend/                  # Frontend UI (Samip)
+├── frontend/                  # Frontend dashboard
 │   ├── app/                   # Next.js pages
 │   ├── components/            # React components
 │   └── package.json
