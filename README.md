@@ -124,25 +124,6 @@ A Tier-0 Enterprise Reliability Engineering application demonstrating 99.99999% 
 - Cohere AI (embeddings + RAG)
 - Vector search for image intelligence
 
-## Quick Start
-
-### 1. Clone Repository
-
-```bash
-git clone <repo-url>
-cd cmpe_273_sec_47_sre_ai_agent_hackathon_opsc
-```
-
-### 2. Get Configuration
-
-Copy `.env.example` to `.env` and fill in the required credentials:
-
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-See [.env.example](.env.example) for all required environment variables.
 
 ## Project Structure
 
@@ -198,19 +179,7 @@ All resources deployed in **West US** with **Availability Zone** redundancy:
 - **Production (HA):** ~$200/week
 - **Development:** ~$65/week
 
-### Cleanup
 
-When done, delete all Azure resources:
-
-```bash
-az group delete --name rg-cmpe273-sre-hackathon --yes --no-wait
-```
-
-## Documentation
-
-- [Infrastructure Deployment Guide](infra/docs/DEPLOYMENT_GUIDE.md)
-- [Infrastructure Architecture](infra/docs/ARCHITECTURE.md)
-- [Infrastructure README](infra/README.md)
 
 ## Features
 
@@ -284,43 +253,6 @@ az group delete --name rg-cmpe273-sre-hackathon --yes --no-wait
 - Embeddings in Cosmos DB
 - Cache in Redis
 
-## Development Workflow
-
-### Infrastructure Setup
-
-1. Deploy Azure infrastructure
-2. Configure networking and security
-3. Set up monitoring and alerts
-4. Share `.env` configuration with team
-
-### Backend Development
-
-1. Build FastAPI application
-2. Implement device simulators
-3. Create MQTT/RabbitMQ consumers
-4. Integrate with Redis and Cosmos DB
-5. Deploy to Azure App Services
-
-### Frontend Development
-
-1. Build Next.js dashboard
-2. Implement shadcn/ui components
-3. Connect to FastAPI backend
-4. Display real-time metrics
-5. Deploy to Azure App Service
-
-## Environment Variables
-
-See [.env.example](.env.example) for all required environment variables. Key variables include:
-
-- `MQTT_HOST`, `RABBITMQ_HOST` - Messaging broker endpoints
-- `REDIS_HOST`, `REDIS_PASSWORD` - Redis cache connection
-- `COSMOS_MONGODB_URI` - Cosmos DB MongoDB connection string
-- `AZURE_STORAGE_CONNECTION_STRING` - Blob storage connection
-- `COHERE_API_KEY` - Cohere AI API key for embeddings
-- `AZURE_CLIENT_ID` - User Managed Identity for password-less auth
-
-All sensitive credentials are stored securely in Azure Key Vault.
 
 ## License
 
