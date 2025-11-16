@@ -59,6 +59,8 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[Di
 
 def create_embeddings(chunks: List[Dict], year: str) -> List[Dict]:
     """Create Cohere embeddings for text chunks"""
+    import time
+
     print(f"🧠 Creating embeddings for {len(chunks)} chunks from BP {year} report...")
 
     co = cohere.Client(COHERE_API_KEY)
@@ -73,27 +75,47 @@ def create_embeddings(chunks: List[Dict], year: str) -> List[Dict]:
 
         print(f"   Processing batch {i//batch_size + 1}/{(len(chunks)-1)//batch_size + 1}...")
 
-        response = co.embed(
-            texts=texts,
-            model="embed-english-v3.0",
-            input_type="search_document"
-        )
+        # Retry logic for rate limiting
+        max_retries = 3
+        retry_delay = 60  # seconds
 
-        for j, embedding in enumerate(response.embeddings):
-            embedded_chunks.append({
-                "document_id": f"bp-{year}-chunk-{chunks[i+j]['chunk_id']}",
-                "year": year,
-                "source": f"BP Annual Report {year}",
-                "text": chunks[i+j]["text"],
-                "embedding": embedding,
-                "word_count": chunks[i+j]["word_count"],
-                "metadata": {
-                    "document_type": "annual_report",
-                    "company": "BP",
-                    "year": year,
-                    "chunk_id": chunks[i+j]["chunk_id"]
-                }
-            })
+        for attempt in range(max_retries):
+            try:
+                response = co.embed(
+                    texts=texts,
+                    model="embed-english-v3.0",
+                    input_type="search_document"
+                )
+
+                for j, embedding in enumerate(response.embeddings):
+                    embedded_chunks.append({
+                        "document_id": f"bp-{year}-chunk-{chunks[i+j]['chunk_id']}",
+                        "year": year,
+                        "source": f"BP Annual Report {year}",
+                        "text": chunks[i+j]["text"],
+                        "embedding": embedding,
+                        "word_count": chunks[i+j]["word_count"],
+                        "metadata": {
+                            "document_type": "annual_report",
+                            "company": "BP",
+                            "year": year,
+                            "chunk_id": chunks[i+j]["chunk_id"]
+                        }
+                    })
+
+                # Success - break retry loop
+                break
+
+            except Exception as e:
+                if "rate limit" in str(e).lower() and attempt < max_retries - 1:
+                    print(f"   ⏸️  Rate limit hit, waiting {retry_delay} seconds before retry {attempt + 2}/{max_retries}...")
+                    time.sleep(retry_delay)
+                else:
+                    raise
+
+        # Add small delay between batches to avoid rate limits
+        if i + batch_size < len(chunks):
+            time.sleep(2)
 
     print(f"✅ Created {len(embedded_chunks)} embeddings\n")
     return embedded_chunks
