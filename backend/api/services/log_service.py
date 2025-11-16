@@ -1,6 +1,6 @@
 import re
 from typing import List, Tuple
-from backend.api.services.redis_client import get_redis
+from api.services.redis_client import get_redis
 
 # Simple regex for common web logs: 'IP - - [ts] "GET /..." status bytes ...'
 LOG_RE = re.compile(r'(?P<ip>\d{1,3}(?:\.\d{1,3}){3}).*?"\w+ [^"]+" (?P<status>\d{3})')

@@ -1,8 +1,8 @@
 import time
 from typing import Dict, Any
-from backend.api.services.redis_client import get_redis
-from backend.api.core.config import settings
-from backend.api.models.schemas import UserMetric
+from api.services.redis_client import get_redis
+from api.core.config import settings
+from api.models.schemas import UserMetric
 
 def k_user_zset_site(site_id: str) -> str:
     return f"users:active:site:{site_id}"        # zset: member=session_id, score=last_seen

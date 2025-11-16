@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from math import sqrt
-from backend.api.services.mongo_client import get_db
-from backend.api.models.schemas import ImageEmbedding
+from api.services.mongo_client import get_db
+from api.models.schemas import ImageEmbedding
 
 COLL = "image_embeddings"
 

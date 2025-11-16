@@ -1,8 +1,8 @@
 import time
 from typing import Dict, Any
-from backend.api.services.redis_client import get_redis
-from backend.api.core.config import settings
-from backend.api.models.schemas import TelemetryEvent
+from api.services.redis_client import get_redis
+from api.core.config import settings
+from api.models.schemas import TelemetryEvent
 
 # Key helpers
 def k_device_zset_site(site_id: str) -> str:
