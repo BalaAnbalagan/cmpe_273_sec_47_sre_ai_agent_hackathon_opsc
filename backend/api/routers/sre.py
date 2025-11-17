@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Dict, Any
+from loguru import logger
 from api.models.schemas import (
     TelemetryEvent, UserMetric, ImageSearchRequest, TopIPsQuery, ImageEmbedding,
     ImageDescriptionRequest, NaturalLanguageSearchRequest, ChatWithImagesRequest,
