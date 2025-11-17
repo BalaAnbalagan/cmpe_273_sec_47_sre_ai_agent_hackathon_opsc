@@ -305,6 +305,7 @@ async def analyze_safety(req: SafetyAnalysisRequest):
     # Step 1: Query BP embeddings for safety requirements
     bp_docs = []
     violation_images = []
+    safety_query = None  # Track the query used for response
 
     try:
         if cohere_service.is_available():
@@ -316,9 +317,13 @@ async def analyze_safety(req: SafetyAnalysisRequest):
             bp_docs = [doc async for doc in bp_cursor]
             logger.info(f"Retrieved {len(bp_docs)} BP documents for safety requirements")
 
-            # Step 2: Extract safety requirements from BP documents
-            safety_query = await cohere_service.extract_safety_requirements_from_bp(bp_docs)
-            logger.info(f"Generated safety search query from BP docs: {safety_query[:100]}...")
+            # Step 2: Use custom query or extract safety requirements from BP documents
+            if req.custom_query:
+                safety_query = req.custom_query
+                logger.info(f"Using custom safety query: {safety_query[:100]}...")
+            else:
+                safety_query = await cohere_service.extract_safety_requirements_from_bp(bp_docs)
+                logger.info(f"Generated safety search query from BP docs: {safety_query[:100]}...")
 
             # Step 3: Generate embedding for safety violation query
             violation_query_embedding = await cohere_service.generate_query_embedding(safety_query)
@@ -392,7 +397,9 @@ async def analyze_safety(req: SafetyAnalysisRequest):
         "analysis": analysis["analysis"],
         "image_ids": [img["image_id"] for img in violation_images],
         "violation_images": violation_images,
-        "rag_mode": cohere_service.is_available()  # Flag to indicate if RAG was used
+        "rag_mode": cohere_service.is_available(),  # Flag to indicate if RAG was used
+        "query_used": safety_query,  # Show the query that was used (custom or BP-extracted)
+        "custom_query": req.custom_query is not None  # Flag if custom query was provided
     }
 
 

@@ -52,3 +52,4 @@ class SafetyAnalysisRequest(BaseModel):
     """Request for safety compliance analysis"""
     site_id: Optional[str] = None  # Analyze specific site or all sites
     max_images: int = 20
+    custom_query: Optional[str] = None  # Custom safety query (overrides BP-based search)
