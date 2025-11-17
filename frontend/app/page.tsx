@@ -53,21 +53,26 @@ export default function Home() {
       try {
         const activeAPI = activeZone === 'az1' ? API_AZ1 : API_AZ2;
 
-        // Fetch from active zone only
-        const [statusRes, versionRes, cohereRes] = await Promise.all([
+        // Fetch version info from both zones (lightweight)
+        // Fetch full status only from active zone
+        const [az1Ver, az2Ver, statusRes, cohereRes] = await Promise.all([
+          fetch(`${API_AZ1}/sre/deployment-version`).then(r => r.ok ? r.json() : null),
+          fetch(`${API_AZ2}/sre/deployment-version`).then(r => r.ok ? r.json() : null),
           fetch(`${activeAPI}/sre/status`).then(r => r.ok ? r.json() : null),
-          fetch(`${activeAPI}/sre/deployment-version`).then(r => r.ok ? r.json() : null),
           fetch(`${activeAPI}/sre/images/cohere-status`).then(r => r.ok ? r.json() : null),
         ]);
 
-        // Update the active zone's data
+        // Update version info for both zones
+        setAz1Version(az1Ver);
+        setAz2Version(az2Ver);
+
+        // Update full status only for active zone
         if (activeZone === 'az1') {
           setAz1Status(statusRes);
-          setAz1Version(versionRes);
         } else {
           setAz2Status(statusRes);
-          setAz2Version(versionRes);
         }
+
         setCohereStatus(cohereRes);
       } catch (error) {
         console.error('Error fetching status:', error);
