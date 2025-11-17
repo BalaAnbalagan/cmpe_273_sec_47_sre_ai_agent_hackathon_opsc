@@ -2,6 +2,10 @@
 
 This project is Team OPSC's submission for the CMPE 273 Section 47 SRE AI Agent Hackathon.
 
+Video Demo Link: https://drive.google.com/file/d/1C7PLWanFWw3qQHwUzjVnls6YlJyaRJ9e/view?usp=sharing
+
+Website Link: https://sre-frontend.azurewebsites.net/ 
+
 ## Project Overview
 
 A Tier-0 Enterprise Reliability Engineering application demonstrating 99.99999% (seven-nines) availability through:
