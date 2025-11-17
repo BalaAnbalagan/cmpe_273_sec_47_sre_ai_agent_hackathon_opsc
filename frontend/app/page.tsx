@@ -146,7 +146,9 @@ export default function Home() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="text-blue-300 text-sm font-medium mb-1">AVAILABILITY ZONE 1</div>
-                      <div className="text-3xl font-bold text-white">West US 2 - Primary</div>
+                      <div className="text-3xl font-bold text-white">
+                        West US 2 - {activeZone === 'az1' ? 'Primary' : 'Secondary'}
+                      </div>
                     </div>
                     {az1Online && (
                       <div className="flex items-center gap-2 bg-green-500/20 px-4 py-2 rounded-full">
@@ -184,7 +186,9 @@ export default function Home() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="text-cyan-300 text-sm font-medium mb-1">AVAILABILITY ZONE 2</div>
-                      <div className="text-3xl font-bold text-white">West US 2 - Secondary</div>
+                      <div className="text-3xl font-bold text-white">
+                        West US 2 - {activeZone === 'az2' ? 'Primary' : 'Secondary'}
+                      </div>
                     </div>
                     {az2Online && (
                       <div className="flex items-center gap-2 bg-green-500/20 px-4 py-2 rounded-full">
