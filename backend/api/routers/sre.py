@@ -285,15 +285,22 @@ async def analyze_safety(req: SafetyAnalysisRequest):
         ("ElectricalRotors", "CA-ELECTRICAL", f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors3.jpg", "Electrical rotors - insufficient grounding detected"),
     ]
 
-    # If database has images, use them for AI analysis, otherwise use static data
+    # Use Cohere AI to analyze violations
     if images:
+        # Use database images for AI analysis
         descriptions = [
             f"{img.get('metadata', {}).get('description', img['image_id'])} (Site: {img.get('metadata', {}).get('site_id', 'N/A')})"
             for img in images
         ]
+    else:
+        # Use static IMAGE_DATA descriptions for AI analysis
+        descriptions = [f"{desc} (Site: {site_id})" for _, site_id, _, desc in IMAGE_DATA]
+
+    # Always use Cohere AI for analysis if available
+    if cohere_service.is_available():
         analysis = await cohere_service.analyze_safety_compliance(descriptions)
     else:
-        # Use static violation descriptions for demo
+        # Fallback to static analysis only if Cohere is unavailable
         analysis = {
             "analysis": "AI-detected safety violations across 12 industrial sites:\n\n"
                        "Critical Issues:\n"
