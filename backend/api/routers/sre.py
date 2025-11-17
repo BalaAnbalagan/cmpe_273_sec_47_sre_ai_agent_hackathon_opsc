@@ -278,22 +278,10 @@ async def analyze_safety(req: SafetyAnalysisRequest):
     Identifies violations, risks, and provides recommendations.
     Returns static images with fallback analysis if Cohere is unavailable.
     """
-    # Fetch image descriptions
+    # Real Azure Blob Storage URLs for uploaded images (fallback data)
     from api.services.mongo_client import get_db
     db = get_db()
 
-    query = {}
-    if req.site_id:
-        query["metadata.site_id"] = req.site_id
-
-    cursor = db["image_embeddings"].find(
-        query,
-        {"_id": 0, "image_id": 1, "metadata": 1}
-    ).limit(req.max_images)
-
-    images = [doc async for doc in cursor]
-
-    # Real Azure Blob Storage URLs for uploaded images
     BLOB_BASE_URL = "https://storsreimages4131.blob.core.windows.net/site-images"
     IMAGE_DATA = [
         ("TurbineImages", "TX-TURBINE", f"{BLOB_BASE_URL}/TurbineImages/Turbine1.jpg", "Turbine equipment with safety barrier missing"),
@@ -310,47 +298,78 @@ async def analyze_safety(req: SafetyAnalysisRequest):
         ("ElectricalRotors", "CA-ELECTRICAL", f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors3.jpg", "Electrical rotors - insufficient grounding detected"),
     ]
 
-    # Use Cohere AI to analyze violations
-    if images:
-        # Use database images for AI analysis
-        descriptions = [
-            f"{img.get('metadata', {}).get('description', img['image_id'])} (Site: {img.get('metadata', {}).get('site_id', 'N/A')})"
-            for img in images
-        ]
-    else:
-        # Use static IMAGE_DATA descriptions for AI analysis
-        descriptions = [f"{desc} (Site: {site_id})" for _, site_id, _, desc in IMAGE_DATA]
+    # ============================================================
+    # TRUE RAG FLOW: BP Requirements → Image Search → Violations
+    # ============================================================
 
-    # Fetch BP 10-K safety documents for RAG-based analysis
+    # Step 1: Query BP embeddings for safety requirements
     bp_docs = []
-    try:
-        # Query BP document embeddings - look for safety-related content
-        bp_cursor = db["bp_documents"].find(
-            {},
-            {"_id": 0, "text": 1, "metadata": 1}
-        ).limit(10)  # Get top 10 BP safety documents
+    violation_images = []
 
-        bp_docs = [doc async for doc in bp_cursor]
-        logger.info(f"Retrieved {len(bp_docs)} BP documents for safety analysis")
-    except Exception as e:
-        logger.warning(f"Could not fetch BP documents: {e}")
-
-    # Try to use Cohere AI RAG with BP documents for analysis
     try:
         if cohere_service.is_available():
-            if bp_docs:
-                # Use RAG with BP 10-K documents
-                logger.info(f"Using BP RAG analysis with {len(bp_docs)} documents")
-                analysis = await cohere_service.analyze_safety_with_bp_rag(descriptions, bp_docs)
-            else:
-                # Fallback to basic analysis without BP documents
-                logger.warning("No BP documents found, using basic safety analysis")
-                analysis = await cohere_service.analyze_safety_compliance(descriptions)
+            # Get BP documents for safety requirements
+            bp_cursor = db["bp_documents"].find(
+                {},
+                {"_id": 0, "text": 1, "metadata": 1, "embedding": 1}
+            ).limit(20)
+            bp_docs = [doc async for doc in bp_cursor]
+            logger.info(f"Retrieved {len(bp_docs)} BP documents for safety requirements")
+
+            # Step 2: Extract safety requirements from BP documents
+            safety_query = await cohere_service.extract_safety_requirements_from_bp(bp_docs)
+            logger.info(f"Generated safety search query from BP docs: {safety_query[:100]}...")
+
+            # Step 3: Generate embedding for safety violation query
+            violation_query_embedding = await cohere_service.generate_query_embedding(safety_query)
+
+            # Step 4: Search image embeddings to find images with violations
+            violation_results = await image_service.search_similar(violation_query_embedding, top_k=req.max_images)
+            logger.info(f"Found {len(violation_results)} violation images from semantic search")
+
+            # Step 5: Build violation images from search results
+            for result in violation_results:
+                metadata = result.get("metadata", {})
+                violation_images.append({
+                    "image_id": result["image_id"],
+                    "site_id": metadata.get("site_id", "UNKNOWN"),
+                    "description": metadata.get("description", "Safety violation detected"),
+                    "url": metadata.get("url", ""),
+                    "thumbnail_url": metadata.get("thumbnail_url", metadata.get("url", "")),
+                    "timestamp": metadata.get("timestamp", "2025-11-17T12:00:00Z"),
+                    "violation_type": metadata.get("violation_type", "Safety Compliance Issue"),
+                    "similarity_score": result.get("score", 0.0)
+                })
+
+            # Step 6: Analyze ONLY the violation images found through RAG
+            descriptions = [
+                f"{img['description']} (Site: {img['site_id']}, Score: {img.get('similarity_score', 0):.2f})"
+                for img in violation_images
+            ]
+
+            logger.info(f"Analyzing {len(descriptions)} violation images with BP RAG")
+            analysis = await cohere_service.analyze_safety_with_bp_rag(descriptions, bp_docs)
+
         else:
+            logger.warning("Cohere not available, using fallback")
             raise Exception("Cohere service not available")
+
     except Exception as e:
-        # Fallback to static analysis if Cohere is unavailable or fails
-        logger.warning(f"Cohere analysis failed, using fallback: {e}")
+        # Fallback to static images and analysis if RAG fails
+        logger.warning(f"RAG-based violation search failed, using fallback: {e}")
+
+        # Use static IMAGE_DATA as fallback
+        for i, (category, site_id, url, description) in enumerate(IMAGE_DATA, 1):
+            violation_images.append({
+                "image_id": f"{category}-{i:03d}",
+                "site_id": site_id,
+                "description": description,
+                "url": url,
+                "thumbnail_url": url,
+                "timestamp": "2025-11-17T12:00:00Z",
+                "violation_type": "Safety Compliance Issue"
+            })
+
         analysis = {
             "analysis": "AI-detected safety violations across 12 industrial sites:\n\n"
                        "Critical Issues:\n"
@@ -366,41 +385,14 @@ async def analyze_safety(req: SafetyAnalysisRequest):
                        "4. Emergency response for leak detection sites"
         }
 
-    # Generate violation images with real blob URLs
-    violation_images = []
-
-    if images:
-        # Use database images directly with their stored URLs
-        for img in images:
-            metadata = img.get("metadata", {})
-            violation_images.append({
-                "image_id": img["image_id"],
-                "site_id": metadata.get("site_id", "UNKNOWN"),
-                "description": metadata.get("description", "Safety violation detected"),
-                "url": metadata.get("url", ""),
-                "thumbnail_url": metadata.get("thumbnail_url", metadata.get("url", "")),
-                "timestamp": metadata.get("timestamp", "2025-11-17T12:00:00Z"),
-                "violation_type": metadata.get("violation_type", "Safety Compliance Issue")
-            })
-    else:
-        # Use static data when database is empty
-        for i, (category, site_id, url, description) in enumerate(IMAGE_DATA, 1):
-            violation_images.append({
-                "image_id": f"{category}-{i:03d}",
-                "site_id": site_id,
-                "description": description,
-                "url": url,
-                "thumbnail_url": url,
-                "timestamp": "2025-11-17T12:00:00Z",
-                "violation_type": "Safety Compliance Issue"
-            })
-
+    # Return results
     return {
         "site_id": req.site_id or "all",
         "images_analyzed": len(violation_images),
         "analysis": analysis["analysis"],
         "image_ids": [img["image_id"] for img in violation_images],
-        "violation_images": violation_images
+        "violation_images": violation_images,
+        "rag_mode": cohere_service.is_available()  # Flag to indicate if RAG was used
     }
 
 

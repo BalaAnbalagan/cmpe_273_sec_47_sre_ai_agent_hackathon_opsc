@@ -203,6 +203,60 @@ async def generate_query_embedding(query: str) -> List[float]:
     return await generate_text_embedding(query, input_type="search_query")
 
 
+async def extract_safety_requirements_from_bp(
+    bp_documents: List[Dict[str, Any]]
+) -> str:
+    """
+    Extract specific safety requirements from BP documents to create an image search query.
+
+    Args:
+        bp_documents: List of BP 10-K document chunks with safety guidelines
+
+    Returns:
+        String with specific safety requirements to search for in images
+    """
+    if not _cohere_client:
+        raise ValueError("Cohere client not initialized - check COHERE_API_KEY")
+
+    try:
+        # Format BP documents for Cohere RAG
+        documents = []
+        for i, doc in enumerate(bp_documents):
+            doc_text = f"{doc.get('text', '')}"
+            documents.append({
+                "id": f"bp_doc_{i}",
+                "text": doc_text
+            })
+
+        # Query BP documents for specific safety requirements
+        prompt = """Based on the BP safety documentation provided, extract specific safety requirements and violations to look for in industrial site images.
+
+Focus on:
+- Hard hat and PPE requirements
+- Protective equipment standards
+- Safety barriers and restricted area protocols
+- Electrical safety requirements
+- Thermal and heat exposure protection
+- Oil and gas site safety protocols
+- Equipment grounding and lockout/tagout
+
+Generate a concise search query (2-3 sentences) that describes safety violations to look for in images, based on BP's standards."""
+
+        response = _cohere_client.chat(
+            message=prompt,
+            documents=documents,
+            model=COHERE_MODEL_CHAT,
+            max_tokens=200,
+            temperature=0.2
+        )
+
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Error extracting safety requirements from BP docs: {e}")
+        # Fallback search query if extraction fails
+        return "safety violations workers without hard hats missing PPE protective equipment exposed wiring unauthorized access missing barriers thermal hazards oil gas leaks electrical hazards"
+
+
 async def analyze_safety_with_bp_rag(
     image_descriptions: List[str],
     bp_documents: List[Dict[str, Any]]
