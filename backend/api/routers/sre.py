@@ -280,19 +280,48 @@ async def analyze_safety(req: SafetyAnalysisRequest):
     # Run AI safety analysis
     analysis = await cohere_service.analyze_safety_compliance(descriptions)
 
-    # Generate image URLs (for demo - can be replaced with actual blob storage URLs)
-    violation_images = [
-        {
+    # Real Azure Blob Storage URLs for uploaded images
+    BLOB_BASE_URL = "https://storsreimages4131.blob.core.windows.net/site-images"
+    IMAGE_MAPPING = {
+        "ThermalEngines": [
+            f"{BLOB_BASE_URL}/ThermalEngines/ThermalEngines1.jpg",
+            f"{BLOB_BASE_URL}/ThermalEngines/ThermalEngines2.jpg",
+            f"{BLOB_BASE_URL}/ThermalEngines/ThermalEngines3.jpg"
+        ],
+        "OilAndGas": [
+            f"{BLOB_BASE_URL}/OilAndGas/ConnectedDevices1.jpg",
+            f"{BLOB_BASE_URL}/OilAndGas/ConnectedDevices2.jpg",
+            f"{BLOB_BASE_URL}/OilAndGas/ConnectedDevices3.jpg"
+        ],
+        "ElectricalRotors": [
+            f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors1.jpg",
+            f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors2.jpg",
+            f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors3.jpg"
+        ],
+        "TurbineImages": [
+            f"{BLOB_BASE_URL}/TurbineImages/Turbine1.jpg",
+            f"{BLOB_BASE_URL}/TurbineImages/Turbine2.jpg",
+            f"{BLOB_BASE_URL}/TurbineImages/Turbine3.jpg"
+        ]
+    }
+
+    # Generate violation images with real blob URLs
+    violation_images = []
+    all_images = []
+    for category, urls in IMAGE_MAPPING.items():
+        all_images.extend([(category, url) for url in urls])
+
+    for i, img in enumerate(images[:len(all_images)]):
+        category, blob_url = all_images[i % len(all_images)]
+        violation_images.append({
             "image_id": img["image_id"],
-            "site_id": img.get("metadata", {}).get("site_id", "Unknown"),
-            "description": img.get("metadata", {}).get("description", "Safety violation detected"),
-            "url": f"https://placehold.co/600x400/dc2626/white?text=Violation+{i+1}",  # Demo placeholder
-            "thumbnail_url": f"https://placehold.co/300x200/dc2626/white?text=Violation+{i+1}",
+            "site_id": img.get("metadata", {}).get("site_id", category),
+            "description": img.get("metadata", {}).get("description", f"Safety violation detected at {category} site"),
+            "url": blob_url,
+            "thumbnail_url": blob_url,  # Using same URL for now
             "timestamp": img.get("metadata", {}).get("timestamp", "2025-11-17"),
             "violation_type": "Safety Compliance Issue"
-        }
-        for i, img in enumerate(images[:10])  # Limit to 10 images for demo
-    ]
+        })
 
     return {
         "site_id": req.site_id or "all",
