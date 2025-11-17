@@ -33,12 +33,12 @@ export default function ViolationsDialog({ isOpen, onClose, apiUrl }: Violations
     }
   }, [isOpen]);
 
-  const fetchViolations = async (customQuery?: string) => {
+  const fetchViolations = async (queryParam?: string) => {
     setLoading(true);
     try {
       const body: any = { max_images: 20 };
-      if (customQuery) {
-        body.custom_query = customQuery;
+      if (queryParam) {
+        body.custom_query = queryParam;
       }
 
       const response = await fetch(`${apiUrl}/sre/images/safety-analysis`, {
