@@ -51,18 +51,23 @@ export default function Home() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const [az1Res, az2Res, az1Ver, az2Ver, cohereRes] = await Promise.all([
-          fetch(`${API_AZ1}/sre/status`).then(r => r.ok ? r.json() : null),
-          fetch(`${API_AZ2}/sre/status`).then(r => r.ok ? r.json() : null),
-          fetch(`${API_AZ1}/sre/deployment-version`).then(r => r.ok ? r.json() : null),
-          fetch(`${API_AZ2}/sre/deployment-version`).then(r => r.ok ? r.json() : null),
-          fetch(`${API_AZ1}/sre/images/cohere-status`).then(r => r.ok ? r.json() : null),
+        const activeAPI = activeZone === 'az1' ? API_AZ1 : API_AZ2;
+
+        // Fetch from active zone only
+        const [statusRes, versionRes, cohereRes] = await Promise.all([
+          fetch(`${activeAPI}/sre/status`).then(r => r.ok ? r.json() : null),
+          fetch(`${activeAPI}/sre/deployment-version`).then(r => r.ok ? r.json() : null),
+          fetch(`${activeAPI}/sre/images/cohere-status`).then(r => r.ok ? r.json() : null),
         ]);
 
-        setAz1Status(az1Res);
-        setAz2Status(az2Res);
-        setAz1Version(az1Ver);
-        setAz2Version(az2Ver);
+        // Update the active zone's data
+        if (activeZone === 'az1') {
+          setAz1Status(statusRes);
+          setAz1Version(versionRes);
+        } else {
+          setAz2Status(statusRes);
+          setAz2Version(versionRes);
+        }
         setCohereStatus(cohereRes);
       } catch (error) {
         console.error('Error fetching status:', error);
@@ -74,7 +79,7 @@ export default function Home() {
     fetchStatus();
     const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeZone]);
 
   useEffect(() => {
     const timer = setInterval(() => setUptime(u => u + 1), 1000);
