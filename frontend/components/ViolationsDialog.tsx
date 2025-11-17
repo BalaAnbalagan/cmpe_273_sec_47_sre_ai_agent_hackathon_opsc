@@ -23,6 +23,9 @@ export default function ViolationsDialog({ isOpen, onClose, apiUrl }: Violations
   const [violations, setViolations] = useState<ViolationImage[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<ViolationImage | null>(null);
+  const [customQuery, setCustomQuery] = useState('');
+  const [queryUsed, setQueryUsed] = useState<string | null>(null);
+  const [isCustomQuery, setIsCustomQuery] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -30,25 +33,43 @@ export default function ViolationsDialog({ isOpen, onClose, apiUrl }: Violations
     }
   }, [isOpen]);
 
-  const fetchViolations = async () => {
+  const fetchViolations = async (customQuery?: string) => {
     setLoading(true);
     try {
+      const body: any = { max_images: 20 };
+      if (customQuery) {
+        body.custom_query = customQuery;
+      }
+
       const response = await fetch(`${apiUrl}/sre/images/safety-analysis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max_images: 20 })
+        body: JSON.stringify(body)
       });
 
       if (response.ok) {
         const data = await response.json();
         setViolations(data.violation_images || []);
         setAnalysis(data.analysis);
+        setQueryUsed(data.query_used || null);
+        setIsCustomQuery(data.custom_query || false);
       }
     } catch (error) {
       console.error('Error fetching violations:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCustomSearch = () => {
+    if (customQuery.trim()) {
+      fetchViolations(customQuery);
+    }
+  };
+
+  const handleDefaultSearch = () => {
+    setCustomQuery('');
+    fetchViolations();
   };
 
   if (!isOpen) return null;
@@ -73,6 +94,40 @@ export default function ViolationsDialog({ isOpen, onClose, apiUrl }: Violations
               ×
             </button>
           </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700/50">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={customQuery}
+              onChange={(e) => setCustomQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleCustomSearch()}
+              placeholder="Custom safety query (e.g., 'find workers without hard hats')..."
+              className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-red-500/50"
+              disabled={loading}
+            />
+            <button
+              onClick={handleCustomSearch}
+              disabled={loading || !customQuery.trim()}
+              className="px-6 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Search
+            </button>
+            <button
+              onClick={handleDefaultSearch}
+              disabled={loading}
+              className="px-6 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Default (BP)
+            </button>
+          </div>
+          {queryUsed && (
+            <div className="mt-3 text-sm text-slate-400">
+              <span className="text-slate-300 font-medium">Query used:</span> {isCustomQuery ? '🔍 Custom' : '📋 BP-based'} - {queryUsed}
+            </div>
+          )}
         </div>
 
         {/* Content */}
