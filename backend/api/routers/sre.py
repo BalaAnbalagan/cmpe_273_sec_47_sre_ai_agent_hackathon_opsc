@@ -70,6 +70,33 @@ async def get_system_status(request: Request):
     except Exception as e:
         mongo_status = f"❌ error: {str(e)[:50]}"
 
+    # Check MQTT connectivity
+    mqtt_status = "unknown"
+    try:
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        mqtt_port = int(settings.MQTT_PORT) if isinstance(settings.MQTT_PORT, str) else settings.MQTT_PORT
+        result = sock.connect_ex((settings.MQTT_HOST, mqtt_port))
+        sock.close()
+        if result == 0:
+            mqtt_status = f"✅ {settings.MQTT_HOST}:{mqtt_port}"
+        else:
+            mqtt_status = f"❌ {settings.MQTT_HOST}:{mqtt_port} - connection refused"
+    except Exception as e:
+        mqtt_status = f"❌ {settings.MQTT_HOST}:{settings.MQTT_PORT} - {str(e)[:30]}"
+
+    # Check RabbitMQ connectivity
+    rabbitmq_status = "unknown"
+    try:
+        import pika
+        params = pika.URLParameters(settings.RABBITMQ_URL)
+        connection = pika.BlockingConnection(params)
+        connection.close()
+        rabbitmq_status = f"✅ {settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}"
+    except Exception as e:
+        rabbitmq_status = f"❌ {settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT} - {str(e)[:30]}"
+
     return {
         "deployment": {
             "status": "running",
@@ -83,8 +110,8 @@ async def get_system_status(request: Request):
             "redis_cache": redis_status,
             "cosmos_db": mongo_status,
             "cohere_api": "✅ configured" if settings.COHERE_API_KEY else "❌ not configured",
-            "mqtt_broker": f"{settings.MQTT_HOST}:{settings.MQTT_PORT}",
-            "rabbitmq_broker": f"{settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}"
+            "mqtt_broker": mqtt_status,
+            "rabbitmq_broker": rabbitmq_status
         },
         "configuration": {
             "use_key_vault": settings.USE_KEY_VAULT,
@@ -249,10 +276,8 @@ async def analyze_safety(req: SafetyAnalysisRequest):
     """
     AI-powered safety compliance analysis for site images.
     Identifies violations, risks, and provides recommendations.
+    Returns static images with fallback analysis if Cohere is unavailable.
     """
-    if not cohere_service.is_available():
-        raise HTTPException(status_code=503, detail="Cohere service not configured")
-
     # Fetch image descriptions
     from api.services.mongo_client import get_db
     db = get_db()
@@ -296,11 +321,36 @@ async def analyze_safety(req: SafetyAnalysisRequest):
         # Use static IMAGE_DATA descriptions for AI analysis
         descriptions = [f"{desc} (Site: {site_id})" for _, site_id, _, desc in IMAGE_DATA]
 
-    # Always use Cohere AI for analysis if available
-    if cohere_service.is_available():
-        analysis = await cohere_service.analyze_safety_compliance(descriptions)
-    else:
-        # Fallback to static analysis only if Cohere is unavailable
+    # Fetch BP 10-K safety documents for RAG-based analysis
+    bp_docs = []
+    try:
+        # Query BP document embeddings - look for safety-related content
+        bp_cursor = db["bp_documents"].find(
+            {},
+            {"_id": 0, "text": 1, "metadata": 1}
+        ).limit(10)  # Get top 10 BP safety documents
+
+        bp_docs = [doc async for doc in bp_cursor]
+        logger.info(f"Retrieved {len(bp_docs)} BP documents for safety analysis")
+    except Exception as e:
+        logger.warning(f"Could not fetch BP documents: {e}")
+
+    # Try to use Cohere AI RAG with BP documents for analysis
+    try:
+        if cohere_service.is_available():
+            if bp_docs:
+                # Use RAG with BP 10-K documents
+                logger.info(f"Using BP RAG analysis with {len(bp_docs)} documents")
+                analysis = await cohere_service.analyze_safety_with_bp_rag(descriptions, bp_docs)
+            else:
+                # Fallback to basic analysis without BP documents
+                logger.warning("No BP documents found, using basic safety analysis")
+                analysis = await cohere_service.analyze_safety_compliance(descriptions)
+        else:
+            raise Exception("Cohere service not available")
+    except Exception as e:
+        # Fallback to static analysis if Cohere is unavailable or fails
+        logger.warning(f"Cohere analysis failed, using fallback: {e}")
         analysis = {
             "analysis": "AI-detected safety violations across 12 industrial sites:\n\n"
                        "Critical Issues:\n"
@@ -320,45 +370,17 @@ async def analyze_safety(req: SafetyAnalysisRequest):
     violation_images = []
 
     if images:
-        # Use database images if available
-        BLOB_BASE_URL = "https://storsreimages4131.blob.core.windows.net/site-images"
-        IMAGE_MAPPING = {
-            "ThermalEngines": [
-                f"{BLOB_BASE_URL}/ThermalEngines/ThermalEngines1.jpg",
-                f"{BLOB_BASE_URL}/ThermalEngines/ThermalEngines2.jpg",
-                f"{BLOB_BASE_URL}/ThermalEngines/ThermalEngines3.jpg"
-            ],
-            "OilAndGas": [
-                f"{BLOB_BASE_URL}/OilAndGas/ConnectedDevices1.jpg",
-                f"{BLOB_BASE_URL}/OilAndGas/ConnectedDevices2.jpg",
-                f"{BLOB_BASE_URL}/OilAndGas/ConnectedDevices3.jpg"
-            ],
-            "ElectricalRotors": [
-                f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors1.jpg",
-                f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors2.jpg",
-                f"{BLOB_BASE_URL}/ElectricalRotors/Electrical%20Rotors3.jpg"
-            ],
-            "TurbineImages": [
-                f"{BLOB_BASE_URL}/TurbineImages/Turbine1.jpg",
-                f"{BLOB_BASE_URL}/TurbineImages/Turbine2.jpg",
-                f"{BLOB_BASE_URL}/TurbineImages/Turbine3.jpg"
-            ]
-        }
-
-        all_images = []
-        for category, urls in IMAGE_MAPPING.items():
-            all_images.extend([(category, url) for url in urls])
-
-        for i, img in enumerate(images[:len(all_images)]):
-            category, blob_url = all_images[i % len(all_images)]
+        # Use database images directly with their stored URLs
+        for img in images:
+            metadata = img.get("metadata", {})
             violation_images.append({
                 "image_id": img["image_id"],
-                "site_id": img.get("metadata", {}).get("site_id", category),
-                "description": img.get("metadata", {}).get("description", f"Safety violation detected at {category} site"),
-                "url": blob_url,
-                "thumbnail_url": blob_url,
-                "timestamp": img.get("metadata", {}).get("timestamp", "2025-11-17"),
-                "violation_type": "Safety Compliance Issue"
+                "site_id": metadata.get("site_id", "UNKNOWN"),
+                "description": metadata.get("description", "Safety violation detected"),
+                "url": metadata.get("url", ""),
+                "thumbnail_url": metadata.get("thumbnail_url", metadata.get("url", "")),
+                "timestamp": metadata.get("timestamp", "2025-11-17T12:00:00Z"),
+                "violation_type": metadata.get("violation_type", "Safety Compliance Issue")
             })
     else:
         # Use static data when database is empty

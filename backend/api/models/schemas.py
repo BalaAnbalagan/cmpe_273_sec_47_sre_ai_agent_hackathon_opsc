@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 class TelemetryEvent(BaseModel):
@@ -7,21 +7,21 @@ class TelemetryEvent(BaseModel):
     device_type: str
     device_id: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    metrics: Dict[str, float] | None = None
+    metrics: Optional[Dict[str, float]] = None
 
 class UserMetric(BaseModel):
     site_id: str
     session_id: str
     user_id: str
-    latency_ms: float | None = None
-    cpu_pct: float | None = None
-    mem_pct: float | None = None
+    latency_ms: Optional[float] = None
+    cpu_pct: Optional[float] = None
+    mem_pct: Optional[float] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class ImageEmbedding(BaseModel):
     image_id: str
     embedding: List[float]
-    metadata: Dict[str, Any] | None = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class ImageSearchRequest(BaseModel):
     query_embedding: List[float]
@@ -35,7 +35,7 @@ class ImageDescriptionRequest(BaseModel):
     """Request to generate embedding for an image description"""
     image_id: str
     description: str
-    metadata: Dict[str, Any] | None = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class NaturalLanguageSearchRequest(BaseModel):
     """Request for natural language image search"""
@@ -45,10 +45,10 @@ class NaturalLanguageSearchRequest(BaseModel):
 class ChatWithImagesRequest(BaseModel):
     """Request for RAG-based chat about images"""
     query: str
-    image_ids: List[str] | None = None  # If None, use top search results
+    image_ids: Optional[List[str]] = None  # If None, use top search results
     max_results: int = 10
 
 class SafetyAnalysisRequest(BaseModel):
     """Request for safety compliance analysis"""
-    site_id: str | None = None  # Analyze specific site or all sites
+    site_id: Optional[str] = None  # Analyze specific site or all sites
     max_images: int = 20

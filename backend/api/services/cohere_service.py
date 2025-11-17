@@ -201,3 +201,73 @@ async def generate_query_embedding(query: str) -> List[float]:
         Embedding vector for semantic search
     """
     return await generate_text_embedding(query, input_type="search_query")
+
+
+async def analyze_safety_with_bp_rag(
+    image_descriptions: List[str],
+    bp_documents: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Analyze images for safety compliance using RAG with BP 10-K documents.
+    Uses BP safety guidelines and compliance standards as context.
+
+    Args:
+        image_descriptions: List of image descriptions to analyze
+        bp_documents: List of BP 10-K document chunks with safety guidelines
+
+    Returns:
+        Dict with compliance analysis based on BP standards
+    """
+    if not _cohere_client:
+        raise ValueError("Cohere client not initialized - check COHERE_API_KEY")
+
+    try:
+        # Format BP documents for Cohere RAG
+        documents = []
+        for i, doc in enumerate(bp_documents):
+            doc_text = f"{doc.get('text', '')}"
+            documents.append({
+                "id": f"bp_doc_{i}",
+                "text": doc_text
+            })
+
+        # Create prompt for RAG-based safety analysis
+        prompt = f"""You are a safety compliance expert analyzing industrial site images based on BP's official safety standards and guidelines.
+
+Using the BP safety documentation provided, analyze the following site images for compliance violations:
+
+Images to analyze:
+{chr(10).join(f"{i+1}. {desc}" for i, desc in enumerate(image_descriptions))}
+
+Based on BP's safety standards in the provided documents, identify:
+1. Safety violations and non-compliance issues
+2. Specific BP safety requirements that are being violated
+3. Risk level for each violation (Critical/High/Medium/Low)
+4. Recommended corrective actions based on BP standards
+
+Provide a detailed compliance report citing specific BP safety requirements."""
+
+        # Use Cohere chat with RAG
+        response = _cohere_client.chat(
+            message=prompt,
+            documents=documents,
+            model=COHERE_MODEL_CHAT,
+            max_tokens=800,
+            temperature=0.2
+        )
+
+        return {
+            "analysis": response.text,
+            "raw_response": response.text,
+            "citations": [
+                {
+                    "document_id": cite.document_ids[0] if cite.document_ids else None,
+                    "text": cite.text
+                }
+                for cite in (response.citations or [])
+            ],
+            "bp_documents_used": len(documents)
+        }
+    except Exception as e:
+        logger.error(f"Error in BP RAG safety analysis: {e}")
+        raise

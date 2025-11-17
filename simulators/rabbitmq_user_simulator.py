@@ -18,8 +18,8 @@ load_dotenv()
 # Configuration
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "opsc-rabbitmq-sjsu.westus2.azurecontainer.io")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
-RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
-RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "guest")
+RABBITMQ_USER = os.getenv("RABBITMQ_USERNAME", "admin")
+RABBITMQ_PASS = os.getenv("RABBITMQ_PASSWORD", "hackathon2024")
 QUEUE_NAME = "user_activity"
 
 # User simulation parameters
