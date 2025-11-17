@@ -33,9 +33,25 @@ jobs:
         NEXT_PUBLIC_API_URL_AZ1: https://sre-backend-az1.azurewebsites.net
         NEXT_PUBLIC_API_URL_AZ2: https://sre-backend-az2.azurewebsites.net
 
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
+    - name: Prepare deployment package
+      run: |
+        cd frontend
+        cp -r .next/static .next/standalone/.next/
+        cp -r public .next/standalone/ 2>/dev/null || true
+        cd .next/standalone
+        zip -r ../../../frontend-deploy.zip . -q
+
+    - name: Azure Login
+      uses: azure/login@v1
       with:
-        app-name: sre-frontend
-        publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
-        package: frontend/.next/standalone
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Web App
+      run: |
+        az webapp deploy \
+          --name sre-frontend \
+          --resource-group rg-cmpe273-sre-hackathon \
+          --src-path frontend-deploy.zip \
+          --type zip \
+          --restart true \
+          --async false
