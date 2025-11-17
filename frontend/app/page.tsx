@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import ViolationsDialog from '@/components/ViolationsDialog';
 
 interface BackendStatus {
   deployment: {
@@ -42,6 +43,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [activeZone, setActiveZone] = useState<'az1' | 'az2'>('az1');
   const [uptime, setUptime] = useState(0);
+  const [showViolationsDialog, setShowViolationsDialog] = useState(false);
 
   const API_AZ1 = 'https://sre-backend-az1.azurewebsites.net';
   const API_AZ2 = 'https://sre-backend-az2.azurewebsites.net';
@@ -274,11 +276,16 @@ export default function Home() {
                   description="Query site images using plain English queries"
                   example="'turbine sites with workers without hard hats'"
                 />
-                <CapabilityCard
-                  title="Safety Compliance Analysis"
-                  description="AI-powered safety violation detection and scoring"
-                  example="Real-time compliance monitoring across all sites"
-                />
+                <button
+                  onClick={() => setShowViolationsDialog(true)}
+                  className="w-full text-left"
+                >
+                  <CapabilityCard
+                    title="Safety Compliance Analysis"
+                    description="AI-powered safety violation detection and scoring"
+                    example="Real-time compliance monitoring - CLICK TO VIEW VIOLATIONS"
+                  />
+                </button>
                 <CapabilityCard
                   title="RAG-Based Chat"
                   description="Contextual Q&A about operational data"
@@ -293,6 +300,13 @@ export default function Home() {
             </div>
           </>
         )}
+
+        {/* Violations Dialog */}
+        <ViolationsDialog
+          isOpen={showViolationsDialog}
+          onClose={() => setShowViolationsDialog(false)}
+          apiUrl={activeZone === 'az1' ? API_AZ1 : API_AZ2}
+        />
       </main>
 
       {/* Footer */}
