@@ -280,11 +280,26 @@ async def analyze_safety(req: SafetyAnalysisRequest):
     # Run AI safety analysis
     analysis = await cohere_service.analyze_safety_compliance(descriptions)
 
+    # Generate image URLs (for demo - can be replaced with actual blob storage URLs)
+    violation_images = [
+        {
+            "image_id": img["image_id"],
+            "site_id": img.get("metadata", {}).get("site_id", "Unknown"),
+            "description": img.get("metadata", {}).get("description", "Safety violation detected"),
+            "url": f"https://placehold.co/600x400/dc2626/white?text=Violation+{i+1}",  # Demo placeholder
+            "thumbnail_url": f"https://placehold.co/300x200/dc2626/white?text=Violation+{i+1}",
+            "timestamp": img.get("metadata", {}).get("timestamp", "2025-11-17"),
+            "violation_type": "Safety Compliance Issue"
+        }
+        for i, img in enumerate(images[:10])  # Limit to 10 images for demo
+    ]
+
     return {
         "site_id": req.site_id or "all",
         "images_analyzed": len(images),
         "analysis": analysis["analysis"],
-        "image_ids": [img["image_id"] for img in images]
+        "image_ids": [img["image_id"] for img in images],
+        "violation_images": violation_images  # New field with image details
     }
 
 
