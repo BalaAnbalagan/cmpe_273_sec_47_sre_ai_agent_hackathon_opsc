@@ -46,6 +46,7 @@ export default function Home() {
   const [uptime, setUptime] = useState(0);
   const [showViolationsDialog, setShowViolationsDialog] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [chatContext, setChatContext] = useState<'general' | 'natural_language_search' | 'safety_compliance' | 'rag_chat' | 'log_diagnostics'>('general');
 
   const API_AZ1 = 'https://sre-backend-az1.azurewebsites.net';
   const API_AZ2 = 'https://sre-backend-az2.azurewebsites.net';
@@ -285,7 +286,10 @@ export default function Home() {
 
             {/* AI Assistant */}
             <button
-              onClick={() => setShowAIChat(true)}
+              onClick={() => {
+                setChatContext('general');
+                setShowAIChat(true);
+              }}
               className="w-full mb-8"
             >
               <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl border-2 border-purple-500/50 hover:border-purple-400 transition-all shadow-lg hover:shadow-purple-500/50 p-6">
@@ -309,33 +313,60 @@ export default function Home() {
 
             {/* Capabilities */}
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl border border-slate-700 p-6">
-              <h2 className="text-xl font-bold text-white mb-6">Platform Capabilities</h2>
+              <h2 className="text-xl font-bold text-white mb-6">Platform Capabilities - Click to Open AI Chat</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <CapabilityCard
-                  title="Natural Language Search"
-                  description="Query site images using plain English queries"
-                  example="'turbine sites with workers without hard hats'"
-                />
                 <button
-                  onClick={() => setShowViolationsDialog(true)}
+                  onClick={() => {
+                    setChatContext('natural_language_search');
+                    setShowAIChat(true);
+                  }}
                   className="w-full text-left"
                 >
                   <CapabilityCard
-                    title="Safety Compliance Analysis"
-                    description="AI-powered safety violation detection and scoring"
-                    example="Real-time compliance monitoring - CLICK TO VIEW VIOLATIONS"
+                    title="🔍 Natural Language Search"
+                    description="Query site images using plain English queries"
+                    example="Try: 'Show turbine sites' or 'Find images from TX-TURBINE'"
                   />
                 </button>
-                <CapabilityCard
-                  title="RAG-Based Chat"
-                  description="Contextual Q&A about operational data"
-                  example="'What safety issues were reported this week?'"
-                />
-                <CapabilityCard
-                  title="Log Diagnostics"
-                  description="Intelligent log analysis and anomaly detection"
-                  example="Identify top error-generating IP addresses"
-                />
+                <button
+                  onClick={() => {
+                    setChatContext('safety_compliance');
+                    setShowAIChat(true);
+                  }}
+                  className="w-full text-left"
+                >
+                  <CapabilityCard
+                    title="⚠️ Safety Compliance Analysis"
+                    description="AI-powered safety violation detection with BP standards"
+                    example="Try: 'Find workers without hard hats' or 'Show PPE violations'"
+                  />
+                </button>
+                <button
+                  onClick={() => {
+                    setChatContext('rag_chat');
+                    setShowAIChat(true);
+                  }}
+                  className="w-full text-left"
+                >
+                  <CapabilityCard
+                    title="💬 RAG-Based Chat"
+                    description="Contextual Q&A about operational data with IoT devices"
+                    example="Try: 'What devices are active?' or 'Show user activity by region'"
+                  />
+                </button>
+                <button
+                  onClick={() => {
+                    setChatContext('log_diagnostics');
+                    setShowAIChat(true);
+                  }}
+                  className="w-full text-left"
+                >
+                  <CapabilityCard
+                    title="📋 Log Diagnostics"
+                    description="Intelligent log analysis and error pattern detection"
+                    example="Try: 'Show top error IPs' or 'Analyze 500 error patterns'"
+                  />
+                </button>
               </div>
             </div>
           </>
@@ -353,6 +384,7 @@ export default function Home() {
           isOpen={showAIChat}
           onClose={() => setShowAIChat(false)}
           apiUrl={activeZone === 'az1' ? API_AZ1 : API_AZ2}
+          context={chatContext}
         />
       </main>
 

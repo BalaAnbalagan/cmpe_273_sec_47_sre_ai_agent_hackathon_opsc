@@ -28,21 +28,49 @@ interface Citation {
   text: string;
 }
 
+type ChatContext = 'general' | 'natural_language_search' | 'safety_compliance' | 'rag_chat' | 'log_diagnostics';
+
 interface AIAssistantChatProps {
   isOpen: boolean;
   onClose: () => void;
   apiUrl: string;
+  context?: ChatContext;
 }
 
-export default function AIAssistantChat({ isOpen, onClose, apiUrl }: AIAssistantChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
+export default function AIAssistantChat({ isOpen, onClose, apiUrl, context = 'general' }: AIAssistantChatProps) {
+
+  const getContextualWelcome = (): Message => {
+    const welcomeMessages = {
+      natural_language_search: {
+        content: "🔍 **Natural Language Image Search**\n\nI've loaded the image embeddings from your site. You can search using natural language!\n\n**Try asking:**\n• 'Show turbine site images'\n• 'Find images from TX-TURBINE location'\n• 'Images with electrical equipment'\n• 'Show thermal engine photos'",
+        timestamp: new Date()
+      },
+      safety_compliance: {
+        content: "⚠️ **Safety Compliance Analysis**\n\nI've loaded BP 10-K safety standards. I'll analyze your sites for violations.\n\n**Try asking:**\n• 'Find workers without hard hats'\n• 'Show PPE violations'\n• 'Check electrical safety compliance'\n• 'Find unauthorized access'\n• 'Show thermal hazards'",
+        timestamp: new Date()
+      },
+      rag_chat: {
+        content: "💬 **RAG-Based Operational Chat**\n\nI've loaded IoT device data and user activity. Ask me about your operations!\n\n**Try asking:**\n• 'What devices are active at TX-TURBINE?'\n• 'Show user activity by region'\n• 'What's the status of site operations?'\n• 'Summarize recent device telemetry'",
+        timestamp: new Date()
+      },
+      log_diagnostics: {
+        content: "📋 **Log Analysis & Diagnostics**\n\nI've loaded recent application logs. Ask about errors and patterns!\n\n**Try asking:**\n• 'Show top error-generating IPs'\n• 'What are the most common 500 errors?'\n• 'Analyze recent 404 patterns'\n• 'Show error trends by status code'",
+        timestamp: new Date()
+      },
+      general: {
+        content: "👋 Hello! I'm your AI Site Reliability Assistant. I can help you with:\n\n🔍 **Image Search** - Find site images using natural language\n💬 **Safety Analysis** - Analyze compliance violations\n📊 **RAG Chat** - Ask questions about your site data with AI-powered answers\n📋 **Log Analysis** - Query logs and error patterns\n\nWhat would you like to know?",
+        timestamp: new Date()
+      }
+    };
+
+    return {
       id: '0',
       role: 'assistant',
-      content: "👋 Hello! I'm your AI Site Reliability Assistant. I can help you with:\n\n🔍 **Image Search** - Find site images using natural language\n💬 **Safety Analysis** - Analyze compliance violations\n📊 **RAG Chat** - Ask questions about your site data with AI-powered answers\n📋 **Log Analysis** - Query logs and error patterns\n\nWhat would you like to know?",
-      timestamp: new Date()
-    }
-  ]);
+      ...welcomeMessages[context]
+    };
+  };
+
+  const [messages, setMessages] = useState<Message[]>([getContextualWelcome()]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<ViolationImage | null>(null);
@@ -57,6 +85,22 @@ export default function AIAssistantChat({ isOpen, onClose, apiUrl }: AIAssistant
   }, [messages]);
 
   const detectQueryIntent = (query: string): 'safety_analysis' | 'image_search' | 'rag_chat' | 'general' => {
+    // If we have a specific context, use it to guide intent detection
+    if (context === 'safety_compliance') {
+      return 'safety_analysis';
+    }
+    if (context === 'natural_language_search') {
+      return 'image_search';
+    }
+    if (context === 'rag_chat') {
+      return 'rag_chat';
+    }
+    if (context === 'log_diagnostics') {
+      // For log diagnostics, we'll use rag_chat with log-specific data
+      return 'rag_chat';
+    }
+
+    // General context - detect based on query content
     const lowerQuery = query.toLowerCase();
 
     // Safety analysis patterns
