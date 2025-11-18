@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ViolationsDialog from '@/components/ViolationsDialog';
+import AIAssistantChat from '@/components/AIAssistantChat';
 
 interface BackendStatus {
   deployment: {
@@ -44,6 +45,7 @@ export default function Home() {
   const [activeZone, setActiveZone] = useState<'az1' | 'az2'>('az1');
   const [uptime, setUptime] = useState(0);
   const [showViolationsDialog, setShowViolationsDialog] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const API_AZ1 = 'https://sre-backend-az1.azurewebsites.net';
   const API_AZ2 = 'https://sre-backend-az2.azurewebsites.net';
@@ -281,6 +283,30 @@ export default function Home() {
               <StatCard label="API Requests" value="1.2M/day" trend="+12%" color="purple" />
             </div>
 
+            {/* AI Assistant */}
+            <button
+              onClick={() => setShowAIChat(true)}
+              className="w-full mb-8"
+            >
+              <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl border-2 border-purple-500/50 hover:border-purple-400 transition-all shadow-lg hover:shadow-purple-500/50 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">
+                    🤖
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-1">AI Site Reliability Assistant</h2>
+                    <p className="text-purple-200 text-sm">Unified natural language interface for all platform capabilities</p>
+                  </div>
+                </div>
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-4 py-3">
+                  <div className="text-purple-300 text-sm font-medium">
+                    💬 Ask anything: Safety violations · Image search · RAG chat · Log analysis
+                  </div>
+                  <div className="text-purple-400 text-xs mt-1 italic">Click to open interactive AI chat interface</div>
+                </div>
+              </div>
+            </button>
+
             {/* Capabilities */}
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl border border-slate-700 p-6">
               <h2 className="text-xl font-bold text-white mb-6">Platform Capabilities</h2>
@@ -319,6 +345,13 @@ export default function Home() {
         <ViolationsDialog
           isOpen={showViolationsDialog}
           onClose={() => setShowViolationsDialog(false)}
+          apiUrl={activeZone === 'az1' ? API_AZ1 : API_AZ2}
+        />
+
+        {/* AI Assistant Chat */}
+        <AIAssistantChat
+          isOpen={showAIChat}
+          onClose={() => setShowAIChat(false)}
           apiUrl={activeZone === 'az1' ? API_AZ1 : API_AZ2}
         />
       </main>
